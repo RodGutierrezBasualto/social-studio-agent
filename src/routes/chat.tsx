@@ -1327,6 +1327,28 @@ function ChatPage() {
     if (next.length) setAttachments((cur) => [...cur, ...next].slice(0, 6));
   };
 
+  // Server-executed tools can mutate brand data (updateBrandProfile /
+  // updateBrandGuide) without touching the client cache, which hydrates once
+  // per session — so /marca and the context chips kept showing stale data
+  // after the agent said "done". Refresh the store when those results land.
+  const refreshedBrandCalls = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    for (const m of messages) {
+      for (const part of m.parts ?? []) {
+        const p = part as { type: string; state?: string; toolCallId?: string };
+        if (
+          (p.type === "tool-updateBrandProfile" || p.type === "tool-updateBrandGuide") &&
+          p.state === "output-available" &&
+          p.toolCallId &&
+          !refreshedBrandCalls.current.has(p.toolCallId)
+        ) {
+          refreshedBrandCalls.current.add(p.toolCallId);
+          void brandStore.refresh();
+        }
+      }
+    }
+  }, [messages]);
+
   const send = async () => {
     const v = input.trim();
     if ((!v && attachments.length === 0) || status === "submitted" || status === "streaming")
