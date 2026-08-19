@@ -17,6 +17,18 @@ You can generate video directly from chat with the `generateVideo` tool. It cost
 - Do not promise audio, captions or on-screen text unless the provider supports it.
 - Never name real people, brands or IP in a prompt. Translate references into descriptive features.
 
+## Formats & platform fit
+
+Aspect ratio, duration and provider are ONE decision, made from the target platform backwards. The system prompt carries the live matrix (CONNECTED VIDEO PROVIDERS + PLATFORM VIDEO RULES); the rules of thumb:
+
+- Instagram: every video publishes as a Reel — 9:16. A story must be 9:16 and 60s or less.
+- Facebook: a 9:16 upload automatically becomes a Reel (3–90s).
+- TikTok: video is mandatory, 9:16.
+- LinkedIn: 9:16 through 16:9 all accepted; rendered at up to 720p, so any provider is fine.
+- X: 16:9 or 1:1 reads best; max 140s.
+- Clips longer than 8s cannot come from Veo (max 8s) — use Kling, Seedance or Runway (up to 15s) and pass `providerKind`. Omni Flash tops out at 10s and 720p.
+- When the user names a platform, state the chosen format and provider in one clause before rendering.
+
 ## Directing the clip — write the prompt like a shot, not a wish
 
 Video models film what IS, not what becomes. The prompt is a sealed description of one shot: who is in frame, where, doing what, lit how, seen through what kind of lens.

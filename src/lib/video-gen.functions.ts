@@ -106,7 +106,7 @@ const startInput = z.object({
   providerId: z.string().uuid(),
   prompt: z.string().min(3).max(4000),
   aspectRatio: z.enum(["16:9", "9:16"]).default("16:9"),
-  durationSec: z.union([z.literal(4), z.literal(6), z.literal(8)]).default(8),
+  durationSec: z.number().int().min(3).max(15).default(8),
   // Optional reference image — either an inline data URL (uploaded) or a URL to a stored image (library).
   referenceImageDataUrl: z.string().optional(),
   referenceImageUrl: z.string().url().optional(),
@@ -133,10 +133,13 @@ export const startVideoGeneration = createServerFn({ method: "POST" })
       let refImage: { bytesBase64Encoded: string; mimeType: string } | undefined;
       if (data.referenceImageDataUrl) refImage = parseDataUrl(data.referenceImageDataUrl);
       else if (data.referenceImageUrl) refImage = await fetchAsBase64(data.referenceImageUrl);
+      // Each provider renders a different duration envelope (Veo tops out at
+      // 8s, Kling/Seedance reach 15s); clamp instead of failing the request.
+      const { clampDurationForProvider } = await import("./video-caps");
       const { operationName, model } = await adapter.start(row, apiKey, {
         prompt: data.prompt,
         aspectRatio: data.aspectRatio,
-        durationSec: data.durationSec,
+        durationSec: clampDurationForProvider(row.provider, data.durationSec),
         refImage,
       });
       return {

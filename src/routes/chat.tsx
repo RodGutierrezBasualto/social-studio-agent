@@ -81,7 +81,8 @@ type GenImageArgs = {
 type GenVideoArgs = {
   prompt: string;
   aspectRatio?: "9:16" | "16:9";
-  durationSec?: 4 | 6 | 8;
+  durationSec?: number;
+  providerKind?: string;
   referenceImageId?: string;
 };
 type ShowLibraryArgs = { onlyApproved?: boolean };
@@ -542,9 +543,20 @@ function ChatPage() {
               return;
             }
             const { providers } = await videoProvidersFn({ data: { workspaceId: ws } });
-            const provider = providers.find(
+            const usable = providers.filter(
               (pv) => SUPPORTED_VIDEO_KINDS.includes(pv.provider) && pv.hasKey,
             );
+            // Honor the agent's provider choice when that kind is connected;
+            // otherwise pick the best fit for the requested duration.
+            const { bestProviderKind } = await import("@/lib/video-caps");
+            const wantedKind =
+              a.providerKind && usable.some((pv) => pv.provider === a.providerKind)
+                ? a.providerKind
+                : bestProviderKind(
+                    usable.map((pv) => pv.provider),
+                    a.durationSec ?? 8,
+                  );
+            const provider = usable.find((pv) => pv.provider === wantedKind) ?? usable[0];
             if (!provider) {
               addToolResult({
                 tool: "generateVideo",

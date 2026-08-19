@@ -102,9 +102,13 @@ export const veoAdapter: VideoAdapter = {
         inlineData: { mimeType: args.refImage.mimeType, data: args.refImage.bytesBase64Encoded },
       };
     }
+    // Veo only accepts 4, 6 or 8 — snap anything else to the nearest step.
+    const veoSec = [4, 6, 8].reduce((best, s) =>
+      Math.abs(s - args.durationSec) < Math.abs(best - args.durationSec) ? s : best,
+    );
     const body = {
       instances: [instance],
-      parameters: { aspectRatio: args.aspectRatio, durationSeconds: String(args.durationSec) },
+      parameters: { aspectRatio: args.aspectRatio, durationSeconds: String(veoSec) },
     };
     const errors: string[] = [];
     for (const model of veoModelCandidates(row.default_model)) {
