@@ -3,7 +3,7 @@ import { useMemo, useState } from "react";
 import { scheduleStore, useScheduledPosts, type ScheduledPost } from "@/lib/schedule-store";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ChevronLeft, ChevronRight, Sparkles } from "lucide-react";
 import { PostEditor } from "@/components/post-editor";
 
@@ -302,22 +302,22 @@ function CalendarPage() {
         </aside>
       </div>
 
-      <Sheet open={!!sel} onOpenChange={(o) => !o && setSelected(null)}>
-        <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
+      <Dialog open={!!sel} onOpenChange={(o) => !o && setSelected(null)}>
+        <DialogContent className="sm:max-w-3xl max-h-[88vh] overflow-y-auto">
           {sel && (
             <>
-              <SheetHeader>
-                <SheetTitle className="font-serif text-2xl capitalize">
+              <DialogHeader>
+                <DialogTitle className="font-serif text-2xl capitalize">
                   {sel.post.platform}
-                </SheetTitle>
-              </SheetHeader>
-              <div className="mt-4">
+                </DialogTitle>
+              </DialogHeader>
+              <div className="mt-2">
                 <PostEditor item={sel} onClose={() => setSelected(null)} />
               </div>
             </>
           )}
-        </SheetContent>
-      </Sheet>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

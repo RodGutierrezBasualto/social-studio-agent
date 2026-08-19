@@ -219,7 +219,7 @@ export function PostEditor({ item, onClose }: { item: ScheduledPost; onClose: ()
               controls
               playsInline
               preload="metadata"
-              className="w-full aspect-square object-cover bg-black"
+              className="block mx-auto w-auto max-w-full max-h-[60vh] bg-black"
             />
             <button
               type="button"
