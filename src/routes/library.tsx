@@ -90,6 +90,8 @@ function LibraryPage() {
   const [analyzingIds, setAnalyzingIds] = useState<Set<string>>(new Set());
   const [uploadingVideo, setUploadingVideo] = useState(false);
   const [filter, setFilter] = useState<FilterKind>("all");
+  // Which video card is currently playing in place (one at a time).
+  const [playingId, setPlayingId] = useState<string | null>(null);
 
   const [prompt, setPrompt] = useState("");
   const [refIds, setRefIds] = useState<string[]>([]);
@@ -509,7 +511,17 @@ function LibraryPage() {
                 className={`group relative rounded-lg overflow-hidden border ${isRef ? "border-accent ring-2 ring-accent" : "border-border"} bg-card`}
               >
                 <div className="relative">
-                  {img.dataUrl ? (
+                  {isVideo && img.videoUrl && playingId === img.id ? (
+                    <video
+                      src={img.videoUrl}
+                      poster={img.dataUrl || undefined}
+                      controls
+                      autoPlay
+                      playsInline
+                      className="w-full aspect-square object-contain bg-black"
+                      onEnded={() => setPlayingId(null)}
+                    />
+                  ) : img.dataUrl ? (
                     <img
                       src={img.dataUrl}
                       alt={img.name}
@@ -520,14 +532,19 @@ function LibraryPage() {
                       {isVideo ? <Film className="h-8 w-8" /> : <ImageIcon className="h-8 w-8" />}
                     </div>
                   )}
-                  {isVideo && (
-                    <div className="absolute inset-0 grid place-items-center pointer-events-none">
-                      <div className="rounded-full bg-background/80 p-2">
+                  {isVideo && img.videoUrl && playingId !== img.id && (
+                    <button
+                      type="button"
+                      onClick={() => setPlayingId(img.id)}
+                      className="absolute inset-0 grid place-items-center"
+                      aria-label="Play video"
+                    >
+                      <div className="rounded-full bg-background/80 p-2 hover:bg-background">
                         <Play className="h-4 w-4" />
                       </div>
-                    </div>
+                    </button>
                   )}
-                  {isVideo && img.durationSec ? (
+                  {isVideo && img.durationSec && playingId !== img.id ? (
                     <span className="absolute bottom-1 right-1 rounded bg-background/85 font-mono text-[10px] px-1.5 py-0.5">
                       {Math.round(img.durationSec)}s
                     </span>

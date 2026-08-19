@@ -1636,9 +1636,21 @@ function ChatPage() {
                                 : `Video failed: ${out?.error ?? "unknown"}`}
                           </div>
                           {done && out?.ok && out.videoId && (
-                            <p className="font-mono text-[10px] text-muted-foreground">
-                              id: {out.videoId}
-                            </p>
+                            <>
+                              {videoStashRef.current.get(out.videoId) && (
+                                <video
+                                  src={videoStashRef.current.get(out.videoId)}
+                                  poster={imageStashRef.current.get(out.videoId)}
+                                  controls
+                                  playsInline
+                                  preload="metadata"
+                                  className="max-h-80 w-auto max-w-full rounded-md bg-black"
+                                />
+                              )}
+                              <p className="font-mono text-[10px] text-muted-foreground">
+                                id: {out.videoId}
+                              </p>
+                            </>
                           )}
                         </div>
                       );
