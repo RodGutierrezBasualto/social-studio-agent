@@ -48,7 +48,11 @@ async function getKey() {
 async function encryptSecret(plain) {
   const key = await getKey();
   const iv = crypto.getRandomValues(new Uint8Array(12));
-  const buf = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, new TextEncoder().encode(plain));
+  const buf = await crypto.subtle.encrypt(
+    { name: "AES-GCM", iv },
+    key,
+    new TextEncoder().encode(plain),
+  );
   return `${PREFIX}.${Buffer.from(iv).toString("base64")}.${Buffer.from(new Uint8Array(buf)).toString("base64")}`;
 }
 
@@ -58,7 +62,12 @@ const TABLES = [
   { table: "image_providers", plain: "api_key", enc: "api_key_enc", idCol: "id" },
   { table: "video_providers", plain: "api_key", enc: "api_key_enc", idCol: "id" },
   { table: "service_credentials", plain: "api_key", enc: "api_key_enc", idCol: "id" },
-  { table: "buffer_connection", plain: "access_token", enc: "access_token_enc", idCol: "workspace_id" },
+  {
+    table: "buffer_connection",
+    plain: "access_token",
+    enc: "access_token_enc",
+    idCol: "workspace_id",
+  },
 ];
 
 async function migrateTable({ table, plain, enc, idCol }) {
