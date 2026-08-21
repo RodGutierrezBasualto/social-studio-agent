@@ -1,3 +1,4 @@
+import { safeHttpUrl } from "@/lib/safe-url";
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
@@ -452,9 +453,9 @@ function InboxPage() {
                 <Button size="sm" variant="ghost" onClick={() => setStatus(it, "done")}>
                   <Check className="h-4 w-4" /> Done
                 </Button>
-                {it.permalink ? (
+                {safeHttpUrl(it.permalink) ? (
                   <a
-                    href={it.permalink}
+                    href={safeHttpUrl(it.permalink)}
                     target="_blank"
                     rel="noreferrer"
                     className="text-xs text-muted-foreground inline-flex items-center gap-1 self-center"

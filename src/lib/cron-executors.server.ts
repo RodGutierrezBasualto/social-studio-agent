@@ -550,10 +550,13 @@ async function runMetricsSync(
 ): Promise<{ summary: string; result: Record<string, unknown> }> {
   const { data: conn } = await admin
     .from("buffer_connection")
-    .select("access_token")
+    .select("access_token,access_token_enc")
     .eq("workspace_id", job.workspace_id)
     .maybeSingle();
-  const token = (conn as { access_token?: string } | null)?.access_token;
+  const { readBufferToken } = await import("./crypto.server");
+  const token = await readBufferToken(
+    conn as { access_token?: string; access_token_enc?: string } | null,
+  );
   if (!token) throw new Error("Buffer is not connected for this workspace.");
   const limit = Number.isFinite(job.config.limit as number) ? Number(job.config.limit) : 50;
   const res = await syncBufferMetrics(admin, token, job.workspace_id, limit);
@@ -617,10 +620,13 @@ async function runPerformanceReflection(
     try {
       const { data: conn } = await admin
         .from("buffer_connection")
-        .select("access_token")
+        .select("access_token,access_token_enc")
         .eq("workspace_id", job.workspace_id)
         .maybeSingle();
-      const token = (conn as { access_token?: string } | null)?.access_token;
+      const { readBufferToken } = await import("./crypto.server");
+      const token = await readBufferToken(
+        conn as { access_token?: string; access_token_enc?: string } | null,
+      );
       if (token) synced = (await syncBufferMetrics(admin, token, job.workspace_id, 50)).upserted;
     } catch (e) {
       console.warn("[cron] metrics sync before reflection failed", e);

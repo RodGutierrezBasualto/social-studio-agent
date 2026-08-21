@@ -181,17 +181,15 @@ export const bufferSaveToken = createServerFn({ method: "POST" })
   .handler(async ({ data, context }): Promise<BufferStatus> => {
     const status = await fetchStatus(data.accessToken);
     if (!status.connected) throw new Error(status.error ?? "Buffer rejected this token.");
-    // Store the token encrypted (same AES-GCM scheme as provider keys). The
-    // plaintext column is still written for back-compat: cron-executors reads
-    // access_token directly, so blanking it here would break scheduled jobs
-    // mid-transition. See the TODO on readBufferTokenRow.
-    const { encryptSecret, isEncrypted } = await import("./crypto.server");
-    const enc = await encryptSecret(data.accessToken);
+    // Store the token encrypted at rest (same AES-GCM scheme as provider keys)
+    // with the plaintext column blanked — every reader now decrypts first via
+    // readBufferToken, so the raw token never lands in the table.
+    const { writeBufferToken } = await import("./crypto.server");
+    const tokenCols = await writeBufferToken(data.accessToken);
     const { error } = await (context.supabase as any).from("buffer_connection").upsert(
       {
         workspace_id: data.workspaceId,
-        access_token: data.accessToken,
-        access_token_enc: enc && isEncrypted(enc) ? enc : null,
+        ...tokenCols,
         channels: status.channels,
         updated_at: new Date().toISOString(),
       },
@@ -288,7 +286,13 @@ export const uploadLibraryVideo = createServerFn({ method: "POST" })
       z
         .object({
           workspaceId: z.string().uuid(),
-          dataUrl: z.string().min(20),
+          // Server-side cap (client also limits to 100MB). base64 inflates
+          // binary by 4/3, so ~140M chars ≈ a 100MB video; reject larger
+          // rather than trusting the client's check.
+          dataUrl: z
+            .string()
+            .min(20)
+            .max(145 * 1024 * 1024),
           name: z.string().min(1).max(200),
           contentType: z.string().max(120).optional(),
         })

@@ -62,11 +62,41 @@ async function fetchJson(
   return { ok: res.ok, status: res.status, text, json };
 }
 
+// Provider poll responses hand back a URL to fetch the finished clip. A
+// malicious or compromised provider endpoint could point that at an internal
+// address (cloud metadata 169.254.169.254, localhost service ports) to make
+// the server fetch it — and for Veo we attach the Google API key to that
+// request. Require https to a public host before fetching.
+function assertSafeDownloadUrl(url: string, label: string): void {
+  let host: string;
+  try {
+    const u = new URL(url);
+    if (u.protocol !== "https:") throw new Error(`${label} returned a non-https download URL.`);
+    host = u.hostname.toLowerCase();
+  } catch (e) {
+    throw new Error(e instanceof Error ? e.message : `${label} returned an invalid download URL.`);
+  }
+  const isPrivate =
+    host === "localhost" ||
+    host === "::1" ||
+    host.endsWith(".local") ||
+    host === "169.254.169.254" ||
+    /^127\./.test(host) ||
+    /^10\./.test(host) ||
+    /^192\.168\./.test(host) ||
+    /^169\.254\./.test(host) ||
+    /^172\.(1[6-9]|2\d|3[01])\./.test(host) ||
+    /^(0\.|::$|fc|fd)/.test(host);
+  if (isPrivate)
+    throw new Error(`${label} tried to serve media from a private address (${host}); refused.`);
+}
+
 async function downloadBytes(
   url: string,
   headers: Record<string, string>,
   label: string,
 ): Promise<{ bytes: Uint8Array; mimeType: string }> {
+  assertSafeDownloadUrl(url, label);
   const res = await fetch(url, { headers });
   if (!res.ok) {
     const text = await res.text();
@@ -149,7 +179,21 @@ export const veoAdapter: VideoAdapter = {
       return { status: "error", message: json.error.message ?? "Veo returned an error." };
     const sample = json.response?.generateVideoResponse?.generatedSamples?.[0]?.video;
     if (!sample?.uri) return { status: "error", message: "Veo returned no video sample." };
-    const dl = await downloadBytes(sample.uri, { "x-goog-api-key": apiKey }, "Veo");
+    // Only attach the API key when the file actually lives on Google — a
+    // sample.uri pointing elsewhere must never receive the caller's key.
+    const sampleHost = (() => {
+      try {
+        return new URL(sample.uri).hostname.toLowerCase();
+      } catch {
+        return "";
+      }
+    })();
+    const veoHeaders: Record<string, string> = /(^|\.)(googleapis\.com|google\.com)$/.test(
+      sampleHost,
+    )
+      ? { "x-goog-api-key": apiKey }
+      : {};
+    const dl = await downloadBytes(sample.uri, veoHeaders, "Veo");
     return { status: "done", bytes: dl.bytes, mimeType: sample.mimeType || dl.mimeType };
   },
 };

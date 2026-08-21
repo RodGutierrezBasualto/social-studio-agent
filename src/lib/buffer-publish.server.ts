@@ -82,10 +82,13 @@ export async function publishScheduledPostToBuffer(
 }> {
   const { data: conn } = await admin
     .from("buffer_connection")
-    .select("access_token,channels")
+    .select("access_token,access_token_enc,channels")
     .eq("workspace_id", workspaceId)
     .maybeSingle();
-  const token = (conn as { access_token?: string } | null)?.access_token;
+  const { readBufferToken } = await import("./crypto.server");
+  const token = await readBufferToken(
+    conn as { access_token?: string; access_token_enc?: string } | null,
+  );
   if (!token) return { ok: false, error: "Buffer not connected" };
 
   const channels = Array.isArray((conn as { channels?: unknown }).channels)

@@ -20,6 +20,7 @@
     "db:reset": "supabase db reset",
     "db:studio": "open http://127.0.0.1:54323 2>/dev/null || xdg-open http://127.0.0.1:54323 2>/dev/null || echo 'Supabase Studio: http://127.0.0.1:54323'",
     "seed:brand": "node scripts/seed-brand.mjs",
+    "secrets:encrypt": "node scripts/encrypt-secrets.mjs",
     "tunnel": "ngrok http 5173",
     "cron:once": "./scripts/cron-tick.sh",
     "cron:install": "./scripts/install-cron.sh",

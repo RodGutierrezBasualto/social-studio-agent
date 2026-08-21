@@ -1,3 +1,4 @@
+import { safeHttpUrl } from "@/lib/safe-url";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
@@ -645,11 +646,11 @@ function AnalysisReport({ c, onInspire }: { c: Competitor; onInspire: () => void
                   </div>
                   <div className="text-sm text-foreground/80">
                     {text}
-                    {e.url && (
+                    {safeHttpUrl(e.url) && (
                       <>
                         {" "}
                         <a
-                          href={e.url}
+                          href={safeHttpUrl(e.url)}
                           target="_blank"
                           rel="noreferrer"
                           className="text-accent hover:underline inline-flex items-center gap-0.5"

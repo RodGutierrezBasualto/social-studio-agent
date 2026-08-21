@@ -5,6 +5,14 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 
+// Constant-time comparison so the shared secret can't be recovered by timing.
+function timingSafeEqualStr(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
+}
+
 const Payload = z.object({
   name: z.string().uuid().optional(),
   account_id: z.string().optional(),
@@ -23,7 +31,7 @@ export const Route = createFileRoute("/api/public/hooks/unipile")({
           return new Response("Webhook disabled: UNIPILE_WEBHOOK_SECRET is not set.", {
             status: 503,
           });
-        if (request.headers.get("x-webhook-secret") !== secret) {
+        if (!timingSafeEqualStr(request.headers.get("x-webhook-secret") ?? "", secret)) {
           return new Response("Unauthorized", { status: 401 });
         }
 

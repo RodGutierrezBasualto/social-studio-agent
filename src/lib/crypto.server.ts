@@ -100,3 +100,32 @@ export async function writeProviderKey(
   const enc = await encryptSecret(plain);
   return enc ? { api_key: "", api_key_enc: enc } : { api_key: plain, api_key_enc: null };
 }
+
+type BufferTokenRow = { access_token?: string | null; access_token_enc?: string | null };
+
+/**
+ * Reads the usable Buffer access token from a connection row, preferring the
+ * encrypted column and falling back to the legacy plaintext column. The Buffer
+ * table uses access_token / access_token_enc rather than the provider columns.
+ */
+export async function readBufferToken(row: BufferTokenRow | null): Promise<string | null> {
+  if (!row) return null;
+  const enc = row.access_token_enc;
+  if (enc && isEncrypted(enc)) {
+    const plain = await decryptSecret(enc);
+    if (plain) return plain;
+  }
+  return row.access_token?.trim() || null;
+}
+
+/**
+ * Builds the columns to persist a Buffer token: encrypted, plaintext blanked.
+ */
+export async function writeBufferToken(
+  plain: string,
+): Promise<{ access_token: string; access_token_enc: string | null }> {
+  const enc = await encryptSecret(plain);
+  return enc
+    ? { access_token: "", access_token_enc: enc }
+    : { access_token: plain, access_token_enc: null };
+}
