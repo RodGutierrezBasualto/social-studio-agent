@@ -141,7 +141,9 @@ function InboxPage() {
     try {
       const res = await sync({ data: { workspaceId: activeWorkspaceId, autoDraft: true } });
       if (!res.ok) throw new Error(res.error);
-      toast.success(`${res.inserted} new · ${res.handled} handled`);
+      toast.success(
+        `${res.inserted} new · ${res.handled} handled${res.reconciled ? ` · ${res.reconciled} already answered` : ""}`,
+      );
       // Partial failures (one account, one post, a bad insert) come back in
       // errors — without showing them a broken sync looks like a quiet inbox.
       if (res.errors?.length) {

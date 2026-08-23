@@ -16,6 +16,7 @@ import {
   getOwnProfile,
   listOwnPosts,
   listPostComments,
+  ownRepliedToComment,
   listChats,
   listChatAttendees,
   listChatMessages,
@@ -115,7 +116,13 @@ export async function ingestEngagement(
   client: Client,
   workspaceId: string,
   opts: { postLimit?: number; chatLimit?: number } = {},
-): Promise<{ accounts: number; inserted: number; skipped: number; errors: string[] }> {
+): Promise<{
+  accounts: number;
+  inserted: number;
+  skipped: number;
+  reconciled: number;
+  errors: string[];
+}> {
   const creds = await requireUnipileCreds(client, workspaceId);
   const accounts = await syncedAccounts(client, workspaceId, creds);
   const errors: string[] = [];
@@ -124,12 +131,22 @@ export async function ingestEngagement(
 
   const { data: existingRows } = await client
     .from("engagement_items")
-    .select("external_id")
+    .select("external_id,status")
     .eq("workspace_id", workspaceId)
     .limit(5000);
-  const seen = new Set(
-    ((existingRows ?? []) as { external_id: string }[]).map((r) => r.external_id),
+  const existingStatus = new Map(
+    ((existingRows ?? []) as { external_id: string; status: string }[]).map((r) => [
+      r.external_id,
+      r.status,
+    ]),
   );
+  const seen = new Set(existingStatus.keys());
+
+  // Statuses that still surface in the inbox / auto-draft path. If we detect an
+  // owner reply for one of these (sent here OR on LinkedIn directly), it gets
+  // flipped to "replied" so the agent never drafts a second answer.
+  const OPEN_STATUSES = new Set(["new", "needs_reply", "drafted", "awaiting_approval", "approved"]);
+  const answeredExternalIds: string[] = [];
 
   const queue: Record<string, unknown>[] = [];
 
@@ -159,6 +176,51 @@ export async function ingestEngagement(
           for (const c of comments) {
             if (!c.id || c.isOwn || !c.text.trim()) continue;
             const externalId = `comment:${c.id}`;
+            const existing = existingStatus.get(externalId);
+
+            // If the comment already has replies, check whether WE answered it
+            // (here or on LinkedIn directly) — but only when it's worth a call:
+            // an unseen comment, or one still open in the inbox. Terminal items
+            // are left alone.
+            if (c.replyCounter > 0 && (existing === undefined || OPEN_STATUSES.has(existing))) {
+              let mine = false;
+              try {
+                mine = await ownRepliedToComment(creds, account.id, post.id, c.id, me.id ?? "");
+              } catch (e) {
+                errors.push(`replies on ${c.id}: ${e instanceof Error ? e.message : e}`);
+              }
+              if (mine) {
+                if (existing === undefined) {
+                  // Never surfaced it and it's already answered — record it as
+                  // handled so it stays out of the inbox and out of drafting.
+                  seen.add(externalId);
+                  queue.push({
+                    workspace_id: workspaceId,
+                    provider: "unipile",
+                    external_account_id: account.id,
+                    network: account.type,
+                    kind: "comment",
+                    external_id: externalId,
+                    thread_id: post.id,
+                    post_id: post.id,
+                    post_excerpt: cut(post.text, 240),
+                    permalink: post.url,
+                    author_name: c.authorName || "Someone",
+                    author_handle: c.authorId,
+                    author_url: c.authorUrl,
+                    author_avatar_url: c.authorAvatarUrl,
+                    text: cut(c.text, 4000),
+                    occurred_at: c.createdAt,
+                    status: "replied",
+                  });
+                } else {
+                  // Already in the inbox and open — reconcile it to replied.
+                  answeredExternalIds.push(externalId);
+                }
+                continue;
+              }
+            }
+
             if (seen.has(externalId)) {
               skipped++;
               continue;
@@ -276,12 +338,28 @@ export async function ingestEngagement(
     }
   }
 
+  // Reconcile inbox items we already answered on LinkedIn directly: flip any
+  // still-open item to "replied" so it stops surfacing and can't be answered
+  // twice. Only touches open statuses — sent/escalated/ignored are left as-is.
+  let reconciled = 0;
+  if (answeredExternalIds.length) {
+    const { data: recData, error: recErr } = await client
+      .from("engagement_items")
+      .update({ status: "replied", updated_at: new Date().toISOString() })
+      .eq("workspace_id", workspaceId)
+      .in("external_id", answeredExternalIds)
+      .in("status", ["new", "needs_reply", "drafted", "awaiting_approval", "approved"])
+      .select("id");
+    if (recErr) errors.push(`reconcile answered: ${recErr.message}`);
+    else reconciled = ((recData ?? []) as unknown[]).length;
+  }
+
   await client
     .from("engagement_accounts")
     .update({ last_synced_at: new Date().toISOString() })
     .eq("workspace_id", workspaceId);
 
-  return { accounts: accounts.length, inserted, skipped, errors: errors.slice(0, 10) };
+  return { accounts: accounts.length, inserted, skipped, reconciled, errors: errors.slice(0, 10) };
 }
 
 // ------------------------------------------------------------ brand context
@@ -771,7 +849,13 @@ export async function runEngagementSweep(
   client: Client,
   workspaceId: string,
   opts: { autoDraft?: boolean; autoSend?: boolean } = {},
-): Promise<{ inserted: number; classified: number; handled: number; errors: string[] }> {
+): Promise<{
+  inserted: number;
+  reconciled: number;
+  classified: number;
+  handled: number;
+  errors: string[];
+}> {
   const ingest = await ingestEngagement(client, workspaceId);
 
   const { data: fresh } = await client
@@ -810,7 +894,7 @@ export async function runEngagementSweep(
     }
   }
 
-  return { inserted: ingest.inserted, classified, handled, errors: ingest.errors };
+  return { inserted: ingest.inserted, reconciled: ingest.reconciled, classified, handled, errors: ingest.errors };
 }
 
 /** Compact inbox state for the heartbeat / chat prompt. */

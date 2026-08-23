@@ -260,6 +260,10 @@ export type UnipileComment = {
   authorAvatarUrl: string | null;
   createdAt: string | null;
   isOwn: boolean;
+  // How many replies this comment already has. 0 means nobody (including us)
+  // has answered it; >0 means it's worth checking whether WE already replied
+  // (in the tool or directly on LinkedIn) before surfacing it again.
+  replyCounter: number;
 };
 
 export async function listPostComments(
@@ -305,7 +309,40 @@ export async function listPostComments(
       // There is no is_own flag in the live payload — our own replies are
       // recognised by author id instead, so they don't come back as inbox items.
       isOwn: Boolean(c.is_own ?? (ownProviderId ? authorId === ownProviderId : false)),
+      replyCounter: Number(c.reply_counter ?? c.replies_count ?? 0) || 0,
     };
+  });
+}
+
+/**
+ * Returns true when the connected account has already replied to a comment —
+ * whether that reply was sent through this tool OR directly on LinkedIn. Only
+ * call this for comments whose replyCounter > 0 (no replies ⇒ nobody answered).
+ * Replies live on the same endpoint, addressed by comment_id with the PARENT
+ * post id in the path (verified against the live API).
+ */
+export async function ownRepliedToComment(
+  creds: UnipileCreds,
+  accountId: string,
+  postId: string,
+  commentId: string,
+  ownProviderId: string,
+): Promise<boolean> {
+  if (!ownProviderId) return false;
+  const out = await call<{ items?: unknown[] }>(
+    creds,
+    `/posts/${encodeURIComponent(postId)}/comments`,
+    { query: { account_id: accountId, comment_id: commentId, limit: 50 } },
+  );
+  return (out.items ?? []).some((raw) => {
+    const c = raw as Record<string, unknown>;
+    const details = (c.author_details as Record<string, unknown> | undefined) ?? {};
+    const author = (typeof c.author === "object" && c.author ? c.author : {}) as Record<
+      string,
+      unknown
+    >;
+    const id = str(details.id || author.id || c.author_id);
+    return id === ownProviderId;
   });
 }
 
