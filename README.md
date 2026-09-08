@@ -1,115 +1,238 @@
-# Social Studio
+# Social Studio Agent
 
-An open-source AI social media studio that runs on your machine. A chat agent
-that writes in **your** brand voice, generates on-brand images and video,
-schedules and publishes through Buffer, watches your engagement inbox, studies
-competitors, and runs autonomous automations — with you holding the approval
-queue.
+An AI agent that runs your social media for you — not a scheduling tool, an actual autonomous operator. It writes in your brand voice, generates on-brand images and video, publishes through Buffer, watches your engagement inbox, monitors competitors, and runs fully automated daily jobs. You stay in control through an approval queue.
 
-**Bring your own keys.** Social Studio ships with no platform accounts and no vendor
-lock-in: you connect your own model provider (Anthropic, OpenAI, Google, or
-any OpenAI-compatible endpoint), your own image/video providers, and your own
-service accounts. Keys are stored encrypted in your own local database.
+**Bring your own keys.** No platform accounts, no vendor lock-in, no subscription. You connect your own model provider, image and video generators, and service accounts. Keys are stored encrypted in your own local database.
 
-## What it does
+---
 
-- **Chat agent** with 40+ tools: write and schedule posts, generate images and
-  video clips, assemble LinkedIn carousels, read reference posts you paste,
-  research the web, analyze competitors, and manage its own automations.
-- **Publishing** through Buffer (LinkedIn, Instagram, X, …): queue, exact-time,
-  or publish-now, with native image/video/document attachments.
-- **Engagement inbox** via Unipile: comments, mentions, and DMs from your
-  linked accounts, with drafted replies that wait for your approval.
-- **Brand brain**: a brand profile + guide the agent treats as the source of
-  truth, plus a library of approved visuals and a memory of corrections you've
-  given it.
-- **Automations**: cron-scheduled jobs (daily drafts, weekly competitor scans)
-  that run in the background and leave an activity log.
+## What it can do
+
+- **Writes in your exact brand voice** — learns how you talk, what words you use, what to never say. Gets better every time you correct it.
+- **Generates on-brand images and short videos** — styled after your approved visual library. Supports OpenAI, Gemini, Azure, Runway, Kling, Seedance, and Veo.
+- **Publishes to LinkedIn, Instagram, X, Facebook, TikTok** — through Buffer. Queue slot, exact time, or post now. LinkedIn carousels included.
+- **Reads your comments and DMs** — classifies by urgency and intent, drafts replies in your voice. Never sends without you approving.
+- **Monitors competitors** — scrapes their websites and social profiles, builds full analyst reports. Positioning gaps, content patterns, what you can exploit.
+- **Tracks what's working** — pulls real engagement data from Buffer and learns which formats, lengths, and posting times actually perform.
+- **Holds an approval queue** — nothing an automation produces ever goes live without you seeing it first.
+
+## What you can automate
+
+Set these up once and they run in the background:
+
+- **Daily post** — agent writes a post, generates a matching image, drops it in your approval queue (or auto-publishes if you turn approval mode off)
+- **Competitor scans** — refreshes competitor social data on a schedule
+- **Weekly performance reports** — written in plain English by the agent, not a dashboard you have to interpret
+- **Engagement inbox drafting** — drafts replies to comments and DMs so you never stare at a blank reply field again
+- **Performance reflection** — agent reviews what it predicted vs what actually happened, writes conclusions, gets smarter over time
+
+---
 
 ## Prerequisites
 
-- **Node.js ≥ 20.12** (uses `process.loadEnvFile`)
-- **npm** (the repo ships `package-lock.json`; don't use bun)
-- **Docker Desktop** (Supabase runs locally in containers)
-- **[Supabase CLI](https://supabase.com/docs/guides/local-development/cli/getting-started)** installed globally
+Before you start, make sure you have:
 
-## Quick start
+- **Node.js ≥ 20.12** — check with `node --version`
+- **npm** — the repo ships `package-lock.json`; don't use bun
+- **Docker Desktop** — running in the background (Supabase needs it)
+- **Supabase CLI** — install with `brew install supabase/tap/supabase` (Mac) or see the [Supabase CLI docs](https://supabase.com/docs/guides/local-development/cli/getting-started)
+- **ngrok** — required later for Buffer image publishing — install with `brew install ngrok/ngrok/ngrok` (Mac)
+
+---
+
+## Setup — step by step
+
+### 1. Clone the repo
 
 ```bash
-git clone <this-repo>
+git clone https://github.com/RodGutierrezBasualto/social-studio-agent.git
 cd social-studio-agent
+```
+
+### 2. Install dependencies
+
+```bash
 npm install
-npm run db:start          # local Supabase: Postgres, Auth, Storage, Studio
+```
+
+### 3. Start the local database
+
+```bash
+npm run db:start
+```
+
+This starts a local Supabase instance (Postgres, Auth, Storage) inside Docker. The first run takes a minute to pull images.
+
+### 4. Copy the environment file
+
+```bash
 cp .env.example .env
 ```
 
-Fill in `.env`:
+### 5. Fill in `.env`
 
-1. `supabase status` prints the **publishable key** and **secret (service
-   role) key** — paste them into the four Supabase variables (the two `VITE_`
-   ones repeat the URL and publishable key).
-2. Generate the secrets: `openssl rand -hex 32` for `PROVIDER_KEY_SECRET`
-   (encrypts your saved API keys — required) and again for `CRON_TICK_SECRET`.
-
-Then:
+Run this to see the keys you need:
 
 ```bash
-npm run dev               # http://localhost:5173
+supabase status
 ```
 
-Sign up at `/auth` (email confirmation is disabled locally; a workspace is
-created automatically), then — **important** — go to **Settings → Connections
-and add a model API key**. The agent is bring-your-own-key: until a text-model
-key is connected, chat will tell you it has no model rather than answering.
+Copy the values it prints into your `.env`:
 
-Optionally seed a demo brand so the agent has a voice to write in:
+| `.env` variable | Where it comes from |
+|---|---|
+| `SUPABASE_URL` | `API URL` from `supabase status` |
+| `SUPABASE_PUBLISHABLE_KEY` | `Publishable` key |
+| `SUPABASE_SERVICE_ROLE_KEY` | `Secret` key |
+| `VITE_SUPABASE_URL` | Same as `SUPABASE_URL` |
+| `VITE_SUPABASE_PUBLISHABLE_KEY` | Same as `SUPABASE_PUBLISHABLE_KEY` |
+
+Then generate two random secrets — run this command twice and paste each output:
 
 ```bash
-npm run seed:brand        # loads seed/brand.example.json (or your gitignored seed/brand.local.json)
+openssl rand -hex 32
 ```
 
-Then edit `/marca` and `/guia` in the app to make the brand yours.
+- First output → `PROVIDER_KEY_SECRET` (encrypts your saved API keys — required, never change it after setup)
+- Second output → `CRON_TICK_SECRET`
 
-## Optional connections
+Leave `PUBLIC_APP_URL` empty for now — you'll fill it in the tunnel step below.
 
-Everything below is off until you connect it — the app degrades gracefully:
+### 6. Start the dev server
 
-| Feature                       | Needs                                                                                       |
-| ----------------------------- | ------------------------------------------------------------------------------------------- |
-| Real publishing               | A [Buffer](https://buffer.com) access token                                                 |
-| Image generation              | OpenAI, Google Gemini, or Azure key (Settings → Connections)                                |
-| Video generation              | Google Veo / Gemini Omni Flash, Seedance (BytePlus), Kling, or Runway key                   |
-| Engagement inbox              | A [Unipile](https://unipile.com) account with your LinkedIn connected                       |
-| Web search / competitor scans | [Firecrawl](https://firecrawl.dev) and/or [ScrapeCreators](https://scrapecreators.com) keys |
-| Media on published posts      | `PUBLIC_APP_URL` set to a public https URL (`npm run tunnel` via ngrok)                     |
+```bash
+npm run dev
+```
+
+Open **http://localhost:5173** in your browser.
+
+### 7. Create your account
+
+Go to `/auth` and sign up with any email. Email confirmation is disabled locally — you'll be signed in immediately and a workspace is created for you automatically.
+
+### 8. Add a model API key (required)
+
+Go to **Settings → Connections** and add at least one text model key (Anthropic, OpenAI, or Google). The agent cannot answer until a model is connected.
+
+### 9. Seed a demo brand (optional)
+
+```bash
+npm run seed:brand
+```
+
+This loads a sample brand profile so the agent has a voice to write in from day one. Then edit `/marca` and `/guia` in the app to replace it with your own brand.
+
+---
+
+## Setting up the tunnel (required for Buffer image publishing)
+
+Buffer downloads your images and videos from a public URL when publishing. Without a tunnel, Buffer can only reach `127.0.0.1` — which it can't — so media attachments on posts will fail.
+
+### Step 1 — Create a free ngrok account
+
+Go to [dashboard.ngrok.com/signup](https://dashboard.ngrok.com/signup) and sign up. It's free.
+
+### Step 2 — Add your authtoken
+
+After signing up, go to [dashboard.ngrok.com/get-started/your-authtoken](https://dashboard.ngrok.com/get-started/your-authtoken) and copy your token. Then run:
+
+```bash
+ngrok config add-authtoken YOUR_TOKEN_HERE
+```
+
+You only need to do this once per machine.
+
+### Step 3 — Start the tunnel
+
+Open a **separate terminal window** (keep it open while you use the app) and run:
+
+```bash
+ngrok http 5173
+```
+
+ngrok will print something like:
+
+```
+Forwarding    https://abc123.ngrok-free.app -> http://localhost:5173
+```
+
+Copy that `https://` URL.
+
+### Step 4 — Update `.env`
+
+Open `.env` and set:
+
+```
+PUBLIC_APP_URL="https://abc123.ngrok-free.app"
+```
+
+### Step 5 — Restart the dev server
+
+Stop the server (`Ctrl+C`) and start it again:
+
+```bash
+npm run dev
+```
+
+> **Note:** The free ngrok plan gives you a new URL every session. Repeat steps 3–5 each time you restart ngrok. A paid ngrok plan gives you a fixed URL so you only set `PUBLIC_APP_URL` once.
+
+---
+
+## Connecting your accounts
+
+Go to **Settings → Connections** to add these. Everything is optional — the app degrades gracefully without them.
+
+| What you want | What to connect | Where to get it |
+|---|---|---|
+| Publish posts | Buffer access token | [publish.buffer.com/settings/api](https://publish.buffer.com/settings/api) |
+| Generate images | OpenAI, Gemini, or Azure key | Your provider dashboard |
+| Generate video | Veo, Seedance, Kling, or Runway key | Your provider dashboard |
+| Engagement inbox | Unipile account + LinkedIn connected | [unipile.com](https://unipile.com) |
+| Web search & competitor scraping | Firecrawl and/or ScrapeCreators key | [firecrawl.dev](https://firecrawl.dev) · [scrapecreators.com](https://scrapecreators.com) |
+| Slack notifications | Slack incoming webhook URL | Your Slack workspace settings |
+
+---
 
 ## Automations (background jobs)
 
-Automations advance on a once-a-minute tick. Fire it manually with
-`npm run cron:once`, or install a scheduler:
+Automations run on a once-a-minute tick. Start it manually anytime with:
 
-- **macOS**: `npm run cron:install` (launchd agent; `npm run cron:uninstall` to remove)
-- **Linux**: add `* * * * * cd /path/to/repo && ./scripts/cron-tick.sh` to your crontab
+```bash
+npm run cron:once
+```
 
-The honest limitation of running locally: automations only advance while the
-app is running and your machine is awake.
+Or install a persistent scheduler so automations run automatically:
+
+**macOS:**
+```bash
+npm run cron:install    # installs a launchd agent
+npm run cron:uninstall  # removes it
+```
+
+**Linux** — add this to your crontab (`crontab -e`):
+```
+* * * * * cd /path/to/social-studio-agent && ./scripts/cron-tick.sh
+```
+
+> Automations only advance while the app is running and your machine is awake — this is the honest limitation of running locally.
+
+---
 
 ## Production build
 
 ```bash
-npm run build             # → .output/server/index.mjs
+npm run build
 node .output/server/index.mjs
 ```
 
-Note: nothing auto-loads `.env` for the production server — export the
-variables into the shell (or use your host's secret manager) before starting.
-Set `NITRO_PRESET=cloudflare-module` to target Cloudflare Workers.
+Nothing auto-loads `.env` for the production server — export your variables into the shell or use your host's secret manager before starting. Set `NITRO_PRESET=cloudflare-module` to deploy to Cloudflare Workers.
+
+---
 
 ## Learn more
 
-More depth: [DOCUMENTATION.md](DOCUMENTATION.md) (architecture, every
-subsystem, honest limitations) and [docs/overview.md](docs/overview.md)
-(non-technical tour of what the agent can do).
+- [DOCUMENTATION.md](DOCUMENTATION.md) — architecture, every subsystem, honest limitations
+- [docs/overview.md](docs/overview.md) — non-technical tour of what the agent can do
 
 ## License
 
