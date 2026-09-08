@@ -1,6 +1,34 @@
 # Social Studio Agent
 
-![Social Studio Agent demo](https://raw.githubusercontent.com/RodGutierrezBasualto/social-studio-agent/main/public/social.gif)
+# The AI that learns and improves by itself — fully autonomous.
+
+> Not a scheduling tool. Not a chatbot. An agent that writes, publishes, replies, and gets smarter every week — while you focus on your actual work.
+
+---
+
+### ✦ Create images from your approved brand guidelines
+
+![Create images from approved guidelines](https://raw.githubusercontent.com/RodGutierrezBasualto/social-studio-agent/main/public/demo-images.gif)
+
+---
+
+### ✦ Publish directly to your social media and manage your calendar
+
+![Publish from AI agent and manage calendar](https://raw.githubusercontent.com/RodGutierrezBasualto/social-studio-agent/main/public/demo-publish.gif)
+
+---
+
+### ✦ Review performance and save learnings
+
+![Ask about performance and save learnings](https://raw.githubusercontent.com/RodGutierrezBasualto/social-studio-agent/main/public/demo-performance.gif)
+
+---
+
+### ✦ Manage DMs and comments automatically
+
+![Manage DMs and comments automatically](https://raw.githubusercontent.com/RodGutierrezBasualto/social-studio-agent/main/public/demo-inbox.gif)
+
+---
 
 An AI agent that runs your social media for you — not a scheduling tool, an actual autonomous operator. It writes in your brand voice, generates on-brand images and video, publishes through Buffer, watches your engagement inbox, monitors competitors, and runs fully automated daily jobs. You stay in control through an approval queue.
 
