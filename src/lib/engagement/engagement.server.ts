@@ -894,7 +894,13 @@ export async function runEngagementSweep(
     }
   }
 
-  return { inserted: ingest.inserted, reconciled: ingest.reconciled, classified, handled, errors: ingest.errors };
+  return {
+    inserted: ingest.inserted,
+    reconciled: ingest.reconciled,
+    classified,
+    handled,
+    errors: ingest.errors,
+  };
 }
 
 /** Compact inbox state for the heartbeat / chat prompt. */

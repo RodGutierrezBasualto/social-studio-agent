@@ -1,5 +1,7 @@
 # Social Studio Agent
 
+<video src="public/demo-compressed.mp4" controls width="100%"></video>
+
 An AI agent that runs your social media for you — not a scheduling tool, an actual autonomous operator. It writes in your brand voice, generates on-brand images and video, publishes through Buffer, watches your engagement inbox, monitors competitors, and runs fully automated daily jobs. You stay in control through an approval queue.
 
 **Bring your own keys.** No platform accounts, no vendor lock-in, no subscription. You connect your own model provider, image and video generators, and service accounts. Keys are stored encrypted in your own local database.
@@ -79,12 +81,12 @@ supabase status
 
 Copy the values it prints into your `.env`:
 
-| `.env` variable | Where it comes from |
-|---|---|
-| `SUPABASE_URL` | `API URL` from `supabase status` |
-| `SUPABASE_PUBLISHABLE_KEY` | `Publishable` key |
-| `SUPABASE_SERVICE_ROLE_KEY` | `Secret` key |
-| `VITE_SUPABASE_URL` | Same as `SUPABASE_URL` |
+| `.env` variable                 | Where it comes from                |
+| ------------------------------- | ---------------------------------- |
+| `SUPABASE_URL`                  | `API URL` from `supabase status`   |
+| `SUPABASE_PUBLISHABLE_KEY`      | `Publishable` key                  |
+| `SUPABASE_SERVICE_ROLE_KEY`     | `Secret` key                       |
+| `VITE_SUPABASE_URL`             | Same as `SUPABASE_URL`             |
 | `VITE_SUPABASE_PUBLISHABLE_KEY` | Same as `SUPABASE_PUBLISHABLE_KEY` |
 
 Then generate two random secrets — run this command twice and paste each output:
@@ -182,14 +184,14 @@ npm run dev
 
 Go to **Settings → Connections** to add these. Everything is optional — the app degrades gracefully without them.
 
-| What you want | What to connect | Where to get it |
-|---|---|---|
-| Publish posts | Buffer access token | [publish.buffer.com/settings/api](https://publish.buffer.com/settings/api) |
-| Generate images | OpenAI, Gemini, or Azure key | Your provider dashboard |
-| Generate video | Veo, Seedance, Kling, or Runway key | Your provider dashboard |
-| Engagement inbox | Unipile account + LinkedIn connected | [unipile.com](https://unipile.com) |
-| Web search & competitor scraping | Firecrawl and/or ScrapeCreators key | [firecrawl.dev](https://firecrawl.dev) · [scrapecreators.com](https://scrapecreators.com) |
-| Slack notifications | Slack incoming webhook URL | Your Slack workspace settings |
+| What you want                    | What to connect                      | Where to get it                                                                           |
+| -------------------------------- | ------------------------------------ | ----------------------------------------------------------------------------------------- |
+| Publish posts                    | Buffer access token                  | [publish.buffer.com/settings/api](https://publish.buffer.com/settings/api)                |
+| Generate images                  | OpenAI, Gemini, or Azure key         | Your provider dashboard                                                                   |
+| Generate video                   | Veo, Seedance, Kling, or Runway key  | Your provider dashboard                                                                   |
+| Engagement inbox                 | Unipile account + LinkedIn connected | [unipile.com](https://unipile.com)                                                        |
+| Web search & competitor scraping | Firecrawl and/or ScrapeCreators key  | [firecrawl.dev](https://firecrawl.dev) · [scrapecreators.com](https://scrapecreators.com) |
+| Slack notifications              | Slack incoming webhook URL           | Your Slack workspace settings                                                             |
 
 ---
 
@@ -204,12 +206,14 @@ npm run cron:once
 Or install a persistent scheduler so automations run automatically:
 
 **macOS:**
+
 ```bash
 npm run cron:install    # installs a launchd agent
 npm run cron:uninstall  # removes it
 ```
 
 **Linux** — add this to your crontab (`crontab -e`):
+
 ```
 * * * * * cd /path/to/social-studio-agent && ./scripts/cron-tick.sh
 ```
