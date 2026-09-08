@@ -1,6 +1,6 @@
 # Social Studio Agent
 
-<video src="public/demo-compressed.mp4" controls width="100%"></video>
+![Social Studio Agent demo](public/social.gif)
 
 An AI agent that runs your social media for you — not a scheduling tool, an actual autonomous operator. It writes in your brand voice, generates on-brand images and video, publishes through Buffer, watches your engagement inbox, monitors competitors, and runs fully automated daily jobs. You stay in control through an approval queue.
 
