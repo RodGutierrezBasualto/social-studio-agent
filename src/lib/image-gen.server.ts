@@ -1,6 +1,6 @@
 // Bring-your-own-key image generation adapters (server only).
-// Supported: OpenAI Images API (gpt-image-1 family), Google Gemini
-// "Nano Banana" image models via generateContent, and Azure OpenAI image
+// Supported: OpenAI Images API (gpt-image-2.5-sunburst / gpt-image-1), Google
+// Gemini "Nano Banana" image models via generateContent, and Azure OpenAI image
 // deployments (same request shape as OpenAI, different auth header and a
 // required api-version query parameter).
 
@@ -33,7 +33,7 @@ const SIZE_BY_ASPECT: Record<Aspect, string> = {
 export type GenOptions = { aspect?: Aspect };
 
 const DEFAULTS = {
-  openai: { baseUrl: "https://api.openai.com/v1", model: "gpt-image-1" },
+  openai: { baseUrl: "https://api.openai.com/v1", model: "gpt-image-2.5-sunburst" },
   gemini: {
     baseUrl: "https://generativelanguage.googleapis.com",
     model: "gemini-3.1-flash-image",

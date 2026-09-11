@@ -81,10 +81,10 @@ const IMAGE_PROVIDER_OPTIONS: {
 }[] = [
   {
     value: "openai",
-    label: "OpenAI (gpt-image-1)",
-    hint: "Uses your OpenAI account: /v1/images/generations, and /v1/images/edits when you pick references.",
+    label: "OpenAI (gpt-image-2.5-sunburst) — latest",
+    hint: "Uses your OpenAI account: /v1/images/generations, and /v1/images/edits when you pick references. gpt-image-2.5-sunburst is the latest model — change to gpt-image-1 in the model field if you prefer the previous generation.",
     defaultBase: "https://api.openai.com/v1",
-    defaultModel: "gpt-image-1",
+    defaultModel: "gpt-image-2.5-sunburst",
     keyHelp: "platform.openai.com/api-keys — key starts with sk-",
   },
   {
